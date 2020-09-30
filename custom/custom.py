@@ -142,5 +142,5 @@ def crawlProxy05():
 my_crawlers = [crawlProxy01,
                crawlProxy02,
                crawlProxy03,
-               crawlProxy04,
+              # crawlProxy04,
                crawlProxy05,]

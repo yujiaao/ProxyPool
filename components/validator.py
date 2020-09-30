@@ -64,7 +64,8 @@ class Validator(object):
         :return:返回分组结果,格式 ['查询参数字符串',...]
         """
         p_len = len(proxies)
-        offset = 20
+        # offset = 20
+        offset = 2
         params_dict = []
         if p_len<=offset:
             return ['&'.join(['ip_ports%5B%5D={}%3A{}'.format(i.split(':')[0],i.split(':')[1])

@@ -1,0 +1,7 @@
+bs4~=0.0.1
+aiohttp~=3.6.2
+pymongo~=3.11.0
+tldextract~=2.2.3
+flask
+requests
+lxml

@@ -53,4 +53,8 @@ def nyloner():
         print(res)
         return res
 
-builtin_crawlers = [nyloner, ip66]
+builtin_crawlers = [
+    # nyloner,
+    ip66
+]
+

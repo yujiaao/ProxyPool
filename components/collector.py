@@ -5,7 +5,7 @@ import time
 import logging
 from tools.threads          import CrawlThread
 from components.crawlers    import builtin_crawlers
-from custom.custom          import  my_crawlers
+from custom.custom          import my_crawlers
 from inspect                import isfunction
 from config.config          import COLLECT_TIME_GAP
 
@@ -47,8 +47,9 @@ class Collector(object):
                 i.join()
                 results.append(i.get_result())
             for res in results:
-                logger.info('Received %d proxy data from a spider.'%len(res))
-                for x in res:
-                    t_res.add(x)
+                if res:
+                    logger.info('Received %d proxy data from a spider.' % len(res))
+                    for x in res:
+                        t_res.add(x)
             self.__proxyList.extend(t_res)
             time.sleep(COLLECT_TIME_GAP)
