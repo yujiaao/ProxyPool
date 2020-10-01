@@ -27,11 +27,14 @@ DETECT_HIGH_AMOUNT  = 1000
 #高分稳定数据库代理数据连续多少次无效则从稳定数据库中剔除
 DELETE_COMBO        = 20
 #代理IP成功率的最低要求,低于此要求均删除,100次周期测试 0.4=40%
-MIN_SUCCESS_RATE    = 0.4
+# MIN_SUCCESS_RATE    = 0.4
+MIN_SUCCESS_RATE    = 0.1
 #有效代理数据库数据转至高分稳定数据库的成功率最低要求 0.9=90%
 #以及测试总数的最低要求
-STABLE_MIN_RATE     = 0.9000
-STABLE_MIN_COUNT    = 100
+# STABLE_MIN_RATE     = 0.9000
+# STABLE_MIN_COUNT    = 100
+STABLE_MIN_RATE     = 0.6000
+STABLE_MIN_COUNT    = 20
 #目标网站IP代理库验证扫描的最大数，即最多验证多少个目标网站(包含数据库中已存在的),超出部分不会验证
 MAX_T_LEN = 20
 #验证目标库一次最多验证的条数
@@ -50,7 +53,8 @@ targets = [
     # 'http://www.acfun.cn/'
 ]
 #连续超过多少天没有进行验证的目标网站IP代理库则自动删除,单位:天
-TARGET_EXPIRE = 3
+# TARGET_EXPIRE = 3
+TARGET_EXPIRE = 30
 #运行模式,置 1 表示运行，置 0 表示 不运行
 #全置 0 表示只运行 API server
 MODE = {

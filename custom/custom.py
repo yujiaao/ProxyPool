@@ -1,4 +1,5 @@
 #coding:utf-8
+import json
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,23 +20,26 @@ from bs4 import BeautifulSoup
 
 def crawlProxy01():
 
-    url = 'https://github.com/dxxzst/free-proxy-list'
+    # url = 'https://github.com/dxxzst/free-proxy-list'
+    url = 'https://www.freeproxy.world/'
     headers = {
         'User-Agent': "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50"}
     try:
         r = requests.get(url, headers=headers)
         soup = BeautifulSoup(r.text, "html.parser")
-        table = soup.find_all('table')[1]
+        table = soup.find_all('table')[0]
 
-    except :
+    except Exception as  e:
+        print(e)
         pass
 
     else:
         res = []
         for tr in table.find_all('tr')[1:]:
             a = tr.text.split("\n")
-            if a[4] == 'high':
-                res.append("{}:{}".format(a[1], a[2]))
+            #if a[4] == 'high':
+            if len(a) > 4 and len(a[2]) > 2:  # a[4] == 'high':
+                res.append("{}:{}".format(a[2], a[5]))
         print('======crawlProxy01======')
         print(res)
         return res
@@ -62,7 +66,8 @@ def crawlProxy02():
         print('======crawlProxy02======')
         print(res)
         return res
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 
@@ -75,16 +80,18 @@ def crawlProxy03():
                 'http://www.ip3366.net/free/?stype=2']
         res = []
         request = WebRequest()
-        for url in urls:
-            r = request.get(url, timeout=10)
-            proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', r.text)
-            for proxy in proxies:
-                res.append(':'.join(proxy))
+        for page in range(1, 7):
+            for url in urls:
+                r = request.get(url+"&page=%d" % page, timeout=10)
+                proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', r.text)
+                for proxy in proxies:
+                    res.append(':'.join(proxy))
         print('======crawlProxy03======')
         print(res)
         return res
 
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 
@@ -111,7 +118,8 @@ def crawlProxy04():
         print(res)
         return res
 
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 
@@ -129,18 +137,49 @@ def crawlProxy05():
                 continue
             for tr in tr_list:
                 i = tr.xpath("./td[2]/text()")[0] + ":" + tr.xpath("./td[3]/text()")[0]
-                res.append(i)
+                if len(i) > 2:
+                    res.append(i)
         print('======crawlProxy05======')
         print(res)
         return res
 
-    except:
+    except Exception as e:
+        print(e)
         pass
 
 
+def crawlProxy06():
+    """
+    http://ip.jiangxianli.com/api/proxy_ips
+    """
+    try:
+        res = []
+        for i in range(1, 2 + 1):
+            url = 'http://ip.jiangxianli.com/api/proxy_ips?page={}'.format(i)
+            s = requests.Session()
+            response = s.get(url)
+            data = response.text
+            data = json.loads(data)
+            if data['code'] == 0:
+                for proxy in data['data']['data']:
+                    i = proxy['ip'] + ":" + proxy['port']
+                    if len(i) > 2:
+                        res.append(i)
+        print('======crawlProxy06======')
+        print(res)
+        return res
+
+    except Exception as e:
+        print(e)
+        pass
 
 my_crawlers = [crawlProxy01,
                crawlProxy02,
                crawlProxy03,
               # crawlProxy04,
-               crawlProxy05,]
+               crawlProxy05,
+               crawlProxy06,
+               ]
+
+if __name__ == '__main__':
+    crawlProxy06()

@@ -43,7 +43,8 @@ class Rator(object):
             return
         table_data = self.db.all(tname)
         for i in table_data:
-            self.raw_filter.add(':'.join([i['ip'], i['port']]))
+            if len(i['ip']) > 1:
+                self.raw_filter.add(':'.join([i['ip'], i['port']]))
 
     def mark_success(self, data):
         """
@@ -51,6 +52,8 @@ class Rator(object):
         :param data: 单个要存储的代理IP数据，dict类型
         """
         ip = data['ip']
+        if len(ip) < 2:
+            return
         port = data['port']
         # proxy = ':'.join([ip,port])
         _data = self.db.select({'ip': ip, 'port': port})

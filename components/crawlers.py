@@ -48,13 +48,13 @@ def nyloner():
     else:
         crypted_data = response.json()
         data = base64_decode(crypted_data['list'])
-        res = [':'.join([i['ip'],i['port']]) for i in data]
+        res = [':'.join([i['ip'],i['port']]) for i in data if len(i['ip']) > 2]
         print('=======nyloner=======')
         print(res)
         return res
 
 builtin_crawlers = [
     # nyloner,
-    ip66
+   # ip66
 ]
 

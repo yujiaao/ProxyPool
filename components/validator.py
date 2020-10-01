@@ -131,12 +131,17 @@ class Validator(object):
                         data = await response.text(encoding='utf-8')
                         data = json.loads(data)
                 except Exception as e:
+                    print(e)
+                    logger.warning(e)
                     _proxies = get_proxy(format=False)
                     if not _proxies:
                         logger.error('No available proxy to retry the request for validation.')
                         return
                     continue
                 else:
+                    if 'msg' not in data:
+                        logger.warning("not msg find: %s" % data)
+
                     for res in data['msg']:
                         if 'anony' in res and 'time' in res:
                             anony = res['anony']
@@ -152,9 +157,8 @@ class Validator(object):
                                   'resp_time': time, 'test_count': 0,
                                   'fail_count': 0, 'createdTime': '', 'combo_success': 1, 'combo_fail': 0,
                                   'success_rate': '0.00%', 'stability': 0.00}
-                        data = copy.deepcopy(bullet)
+                        dt = copy.deepcopy(bullet)
                         self.rator.mark_success(bullet)
-                        await self.Tentacle.specified_validate(self.db, data, session, sem)
-                    else:
-                        logger.warning("not res find: %s" % data)
+                        await self.Tentacle.specified_validate(self.db, dt, session, sem)
+
                     return

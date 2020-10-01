@@ -4,17 +4,18 @@
 import time
 import asyncio
 import logging
-from components.dbhelper    import Database
-from config.DBsettings      import _DB_SETTINGS
-from config.DBsettings      import _TABLE
-from config.config          import DETECT_HIGH_AMOUNT
-from config.config          import DETECT_LOCAL
-from config.config          import DETECT_AMOUNT
-from config.config          import STABLE_MIN_RATE
-from config.config          import STABLE_MIN_COUNT
-from config.config          import DELETE_COMBO
+from components.dbhelper import Database
+from config.DBsettings import _DB_SETTINGS
+from config.DBsettings import _TABLE
+from config.config import DETECT_HIGH_AMOUNT
+from config.config import DETECT_LOCAL
+from config.config import DETECT_AMOUNT
+from config.config import STABLE_MIN_RATE
+from config.config import STABLE_MIN_COUNT
+from config.config import DELETE_COMBO
 
 logger = logging.getLogger('Detector')
+
 
 class Detector(object):
     """
@@ -25,13 +26,14 @@ class Detector(object):
        该代理的最新数据同步更新到stable数据库中
     3. 负责检测stable数据库中的高分稳定代理是否有不符合高分条件的，有则从stable中删除
     """
+
     def __init__(self):
-        self.standbyDB  = Database(_DB_SETTINGS)
-        self.stableDB   = Database(_DB_SETTINGS)
-        self.standbyDB.table  = _TABLE['standby']
-        self.stableDB.table   = _TABLE['stable']
-        self.standby_data     = []
-        self.stable_data      = []
+        self.standbyDB = Database(_DB_SETTINGS)
+        self.stableDB = Database(_DB_SETTINGS)
+        self.standbyDB.table = _TABLE['standby']
+        self.stableDB.table = _TABLE['stable']
+        self.standby_data = []
+        self.stable_data = []
 
     def begin(self):
         self.stableDB.connect()
@@ -60,7 +62,7 @@ class Detector(object):
                 logger.info('Detector shuts down.')
                 return
 
-    def detect_standby(self,loop):
+    def detect_standby(self, loop):
         """
         检测standby数据库
         :param loop: 异步事件循环
@@ -77,7 +79,7 @@ class Detector(object):
         else:
             self.standby_data = self.standbyDB.all()
 
-    def detect_stable(self,loop):
+    def detect_stable(self, loop):
         """
         检测stable数据库
         :param loop: 异步事件循环
@@ -94,7 +96,7 @@ class Detector(object):
         else:
             self.stable_data = self.stableDB.all()
 
-    async def _detect_standby(self,data):
+    async def _detect_standby(self, data):
         """
         异步协程，对单个standby数据库中的数据文档进行检测
         其中的
@@ -109,19 +111,19 @@ class Detector(object):
         del data['_id']
         ip = data['ip']
         port = data['port']
-        proxy = ':'.join([ip,port])
-        if data['test_count']<STABLE_MIN_COUNT or round(float(data['success_rate'].replace('%',''))/100,4)\
-                < STABLE_MIN_RATE or  data['combo_fail'] >= DELETE_COMBO:
+        proxy = ':'.join([ip, port])
+        if data['test_count'] < STABLE_MIN_COUNT or round(float(data['success_rate'].replace('%', '')) / 100, 4) \
+                < STABLE_MIN_RATE or data['combo_fail'] >= DELETE_COMBO:
             return
-        condition = {'ip':ip,'port':port}
+        condition = {'ip': ip, 'port': port}
         _one_data = self.stableDB.select(condition)
         if _one_data:
-            self.stableDB.update(condition,data)
+            self.stableDB.update(condition, data)
         else:
             self.stableDB.save(data)
             logger.info('Find a stable proxy: %s , put it into the stable database.' % proxy)
 
-    async def _detect_stable(self,data):
+    async def _detect_stable(self, data):
         """
        异步协程，对单个stable数据库中的数据文档进行检测
        其中的
@@ -133,8 +135,8 @@ class Detector(object):
        """
         ip = data['ip']
         port = data['port']
-        proxy = ':'.join([ip,port])
-        condition = {'ip':ip,'port':port}
+        proxy = ':'.join([ip, port])
+        condition = {'ip': ip, 'port': port}
         res = self.standbyDB.select(condition)
         _one_data = res[0] if res else None
         if not bool(_one_data):
@@ -142,11 +144,11 @@ class Detector(object):
             logger.warning(
                 'The high scored proxy: %s had been deleted from the standby database.It\'s unavailable.' % proxy)
         else:
-            if round(float(_one_data['success_rate'].replace('%',''))/100,4) < STABLE_MIN_RATE or _one_data['combo_fail'] >= DELETE_COMBO:
+            if round(float(_one_data['success_rate'].replace('%', '')) / 100, 4) < STABLE_MIN_RATE or _one_data[
+                'combo_fail'] >= DELETE_COMBO:
                 self.stableDB.delete(condition)
                 logger.warning(
                     'The high scored proxy: %s is not that stable now.It\'s Removed.' % proxy)
             else:
                 del _one_data['_id']
-                self.stableDB.update(condition,_one_data)
-
+                self.stableDB.update(condition, _one_data)
