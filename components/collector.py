@@ -8,6 +8,8 @@ from components.crawlers    import builtin_crawlers
 from custom.custom          import my_crawlers
 from inspect                import isfunction
 from config.config          import COLLECT_TIME_GAP
+from APIserver.apiserver    import standby_db
+from tools.util import time_to_date
 
 logger = logging.getLogger('Collector')
 
@@ -52,4 +54,23 @@ class Collector(object):
                     for x in res:
                         t_res.add(x)
             self.__proxyList.extend(t_res)
+            # db = standby_db
+            # valid_time = time_to_date(int(time.time()))
+            # for data in self.__proxyList:
+            #     ip, port = data.split(":")
+            #     db.save({"ip": ip,
+            #              "port": port,
+            #              "score": 60,
+            #              "anony_type": '透明',
+            #              "combo_fail": 0,
+            #              "test_count": 0,
+            #              "fail_count": 0,
+            #              "combo_success": 0,
+            #              "valid_time": valid_time,
+            #              "success_rate": 0,
+            #              "resp_time": "1000 ms",
+            #              "address": ip,
+            #              "stability": 1
+            #              }, standby_db.table)
+
             time.sleep(COLLECT_TIME_GAP)

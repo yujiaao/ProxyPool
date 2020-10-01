@@ -8,32 +8,34 @@ import copy
 import asyncio
 import aiohttp
 import logging
-from config.DBsettings      import _DB_SETTINGS
-from config.DBsettings      import _TABLE
-from config.config          import CONCURRENCY
-from config.config          import VALIDATE_AMOUNT
-from config.config          import VALIDATE_F
-from const.settings         import mul_validate_url
-from const.settings         import v_headers
-from components.rator       import Rator
-from components.dbhelper    import Database
-from components.tentacle    import Tentacle
-from tools.util             import get_proxy
+from config.DBsettings import _DB_SETTINGS
+from config.DBsettings import _TABLE
+from config.config import CONCURRENCY
+from config.config import VALIDATE_AMOUNT
+from config.config import VALIDATE_F
+from const.settings import mul_validate_url
+from const.settings import v_headers
+from components.rator import Rator
+from components.dbhelper import Database
+from components.tentacle import Tentacle
+from tools.util import get_proxy
 
 logger = logging.getLogger('Validator')
+
 
 class Validator(object):
     """
     IP代理数据有效性验证器，对采集器传递过来的代理数据进行有效性验证
     通过内置打分器进行打分存储
     """
-    def __init__(self):
-        self.db         = Database(_DB_SETTINGS)
-        self.db.table   =  _TABLE['standby']
-        self.rator      = Rator(self.db)
-        self.Tentacle   = Tentacle()
 
-    def check_allot(self,proxies):
+    def __init__(self):
+        self.db = Database(_DB_SETTINGS)
+        self.db.table = _TABLE['standby']
+        self.rator = Rator(self.db)
+        self.Tentacle = Tentacle()
+
+    def check_allot(self, proxies):
         """
         将验证器一次取出的采集器传递过来的待验证代理数据进行分组
         分成几组则有多少个异步协程来验证IP代理数据，一组中有多少个代理IP
@@ -67,15 +69,15 @@ class Validator(object):
         # offset = 20
         offset = 2
         params_dict = []
-        if p_len<=offset:
-            return ['&'.join(['ip_ports%5B%5D={}%3A{}'.format(i.split(':')[0],i.split(':')[1])
-                             for i in proxies ])]
+        if p_len <= offset:
+            return ['&'.join(['ip_ports%5B%5D={}%3A{}'.format(i.split(':')[0], i.split(':')[1])
+                              for i in proxies])]
         else:
-            base = math.ceil(p_len/offset)
-            p_groups = [proxies[i*offset:(i+1)*offset] for i in range(base)]
+            base = math.ceil(p_len / offset)
+            p_groups = [proxies[i * offset:(i + 1) * offset] for i in range(base)]
             for group in p_groups:
-                url_str = '&'.join(['ip_ports%5B%5D={}%3A{}'.format(i.split(':')[0],i.split(':')[1])
-                             for i in group])
+                url_str = '&'.join(['ip_ports%5B%5D={}%3A{}'.format(i.split(':')[0], i.split(':')[1])
+                                    for i in group])
                 params_dict.append(url_str)
             return params_dict
 
@@ -96,22 +98,22 @@ class Validator(object):
                 if proxyList:
                     self.rator.pull_table(self.db.table)
                     pen = len(proxyList)
-                    logger.info('Proxies from Collector is detected,length : %d '%pen)
-                    pop_len =  pen if pen <= VALIDATE_AMOUNT else VALIDATE_AMOUNT
-                    stanby_proxies =[proxyList.pop() for x in range(pop_len)]
+                    logger.info('Proxies from Collector is detected,length : %d ' % pen)
+                    pop_len = pen if pen <= VALIDATE_AMOUNT else VALIDATE_AMOUNT
+                    stanby_proxies = [proxyList.pop() for _ in range(pop_len)]
                     prams_dict = self.check_allot(stanby_proxies)
-                    logger.info('Start to verify the collected proxy data,amount: %d '%pop_len)
-                    tasks = [asyncio.ensure_future(self.validate_proxy(i,semaphore,session)) for i in prams_dict]
+                    logger.info('Start to verify the collected proxy data,amount: %d ' % pop_len)
+                    tasks = [asyncio.ensure_future(self.validate_proxy(i, semaphore, session)) for i in prams_dict]
                     loop.run_until_complete(asyncio.gather(*tasks))
-                    logger.info('Validation finished.Left collected proxies:%d'%len(proxyList))
+                    logger.info('Validation finished.Left collected proxies:%d' % len(proxyList))
                     time.sleep(VALIDATE_F)
             except Exception as e:
-                logger.error('%s,msg: %s '%(e.__class__,e))
+                logger.error('%s,msg: %s ' % (e.__class__, e))
                 self.rator.end()
                 logger.info('Validator shuts down.')
                 return
 
-    async def validate_proxy(self,url_str,sem,session):
+    async def validate_proxy(self, url_str, sem, session):
         """
          验证器验证函数，可以根据自己的验证逻辑重写
         :param url_str:查询参数字符串
@@ -122,28 +124,37 @@ class Validator(object):
         async with sem:
             while 1:
                 try:
-                    async with session.get(mul_validate_url+url_str,
-                                            proxy = _proxies,
-                                            headers=v_headers,
-                                            ) as response:
+                    async with session.get(mul_validate_url + url_str,
+                                           proxy=_proxies,
+                                           headers=v_headers,
+                                           ) as response:
                         data = await response.text(encoding='utf-8')
                         data = json.loads(data)
                 except Exception as e:
-                        _proxies = get_proxy(format=False)
-                        if not _proxies:
-                            logger.error('No available proxy to retry the request for validation.')
-                            return
-                        continue
+                    _proxies = get_proxy(format=False)
+                    if not _proxies:
+                        logger.error('No available proxy to retry the request for validation.')
+                        return
+                    continue
                 else:
                     for res in data['msg']:
                         if 'anony' in res and 'time' in res:
-                            ip, port = res['ip'],res['port']
-                            bullet = {'ip':ip,'port':port,'anony_type':res['anony'],
-                                      'address':'','score':0,'valid_time':'',
-                                      'resp_time':res['time'],'test_count':0,
-                                      'fail_count':0,'createdTime':'','combo_success':1,'combo_fail':0,
-                                      'success_rate':'0.00%','stability':0.00}
-                            data = copy.deepcopy(bullet)
-                            self.rator.mark_success(bullet)
-                            await self.Tentacle.specified_validate(self.db,data,session,sem)
+                            anony = res['anony']
+                            time = res['time']
+                        else:
+                            logger.warning("not anony or time find: %s" % res)
+                            anony = "透明"
+                            time = "1000 ms"
+
+                        ip, port = res['ip'], res['port']
+                        bullet = {'ip': ip, 'port': port, 'anony_type': anony,
+                                  'address': '', 'score': 0, 'valid_time': '',
+                                  'resp_time': time, 'test_count': 0,
+                                  'fail_count': 0, 'createdTime': '', 'combo_success': 1, 'combo_fail': 0,
+                                  'success_rate': '0.00%', 'stability': 0.00}
+                        data = copy.deepcopy(bullet)
+                        self.rator.mark_success(bullet)
+                        await self.Tentacle.specified_validate(self.db, data, session, sem)
+                    else:
+                        logger.warning("not res find: %s" % data)
                     return
